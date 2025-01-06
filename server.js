@@ -8,22 +8,33 @@ import productRouter from "./routes/productRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
 
+import designerRouter from "./routes/designerRoute.js";
+import designRouter from "./routes/designRoute.js";
+
 // config
 const app = express();
 const port = process.env.PORT || 4000;
 
+// middlewares
+app.use(cors());
+app.use(express.json());
+
 connectDb();
 connectCloudinary();
-
-// middlewares
-app.use(express.json());
-app.use(cors());
 
 // api endpoints
 app.use("/api/user", userRouter);
 app.use("/api/product", productRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
+app.use("/api/designer", designerRouter);
+app.use("/api/design", designRouter);
+
+// error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
+});
 
 app.get("/", (req, res) => {
   res.send("API Working");
