@@ -1,11 +1,23 @@
 import multer from "multer";
 
 const storage = multer.diskStorage({
-  filename: function (req, file, callback) {
-    callback(null, file.originalname);
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, `${Date.now()}-${file.originalname}`);
   },
 });
 
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  fileFilter: (req, file, cb) => {
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new Error("File is not an image"));
+    } else {
+      cb(null, true);
+    }
+  },
+});
 
 export default upload;
