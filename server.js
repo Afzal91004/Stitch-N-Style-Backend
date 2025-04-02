@@ -39,10 +39,18 @@ app.use(
       "http://localhost:5176",
       "http://localhost:5177",
       "http://localhost:5178",
+      // Add your production domains
+      "https://stitch-n-style.vercel.app",
+      "https://stitch-n-style-frontend.vercel.app",
+      // If using Vercel preview deployments
+      "https://*.vercel.app",
     ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
