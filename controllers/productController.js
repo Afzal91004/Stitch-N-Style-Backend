@@ -3,24 +3,32 @@ import productModel from "../models/productModel.js";
 
 // Helper function for image uploads
 const uploadImages = async (files) => {
-  const images = ["image1", "image2", "image3", "image4"]
-    .map((key) => files[key]?.[0])
-    .filter(Boolean);
+  try {
+    const imageKeys = ["image1", "image2", "image3", "image4"];
+    const uploadPromises = [];
 
-  return Promise.all(
-    images.map(async (image) => {
-      try {
-        const result = await cloudinary.uploader.upload(image.path, {
-          resource_type: "image",
-          folder: "products", // Organize images in Cloudinary
-        });
-        return result.secure_url;
-      } catch (error) {
-        console.error(`Failed to upload image: ${error.message}`);
-        throw new Error(`Image upload failed: ${error.message}`);
+    // Process each image key
+    for (const key of imageKeys) {
+      if (files[key] && files[key][0]) {
+        const file = files[key][0];
+        // Upload buffer directly to Cloudinary
+        const uploadPromise = cloudinary.uploader
+          .upload_stream({
+            resource_type: "auto",
+            folder: "products",
+          })
+          .end(file.buffer);
+
+        uploadPromises.push(uploadPromise);
       }
-    })
-  );
+    }
+
+    const results = await Promise.all(uploadPromises);
+    return results.map((result) => result.secure_url);
+  } catch (error) {
+    console.error("Image upload error:", error);
+    throw new Error("Failed to upload images");
+  }
 };
 
 // Validate product data
@@ -59,11 +67,22 @@ const validateProductData = (data) => {
 const addProduct = async (req, res) => {
   try {
     const validatedData = validateProductData(req.body);
-    const imagesUrl = req.files ? await uploadImages(req.files) : [];
+
+    // Check if files exist
+    if (!req.files || Object.keys(req.files).length === 0) {
+      throw new Error("At least one image is required");
+    }
+
+    // Upload images
+    const imageUrls = await uploadImages(req.files);
+
+    if (imageUrls.length === 0) {
+      throw new Error("Failed to upload images");
+    }
 
     const product = new productModel({
       ...validatedData,
-      image: imagesUrl,
+      image: imageUrls,
       date: Date.now(),
     });
 

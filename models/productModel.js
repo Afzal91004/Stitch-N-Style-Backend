@@ -1,28 +1,51 @@
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String, required: true },
+  name: {
+    type: String,
+    required: [true, "Product name is required"],
+    minlength: [3, "Name must be at least 3 characters long"],
+  },
+  description: {
+    type: String,
+    required: [true, "Product description is required"],
+    minlength: [10, "Description must be at least 10 characters long"],
+  },
   price: {
     type: Number,
     required: [true, "Price is required"],
-    min: [0, "Price must be greater than 0"],
-    validate: {
-      validator: function (v) {
-        return !isNaN(v) && v > 0;
-      },
-      message: (props) => `${props.value} is not a valid price!`,
-    },
+    min: [0, "Price cannot be negative"],
   },
-  image: { type: Array, required: true },
-  category: { type: String, required: true },
-  subCategory: { type: String, required: true },
-  sizes: { type: Array, required: true },
-  bestSeller: { type: Boolean },
-  date: { type: Number, required: true },
+  category: {
+    type: String,
+    required: [true, "Category is required"],
+    enum: ["Men", "Women", "Kids"],
+  },
+  subCategory: {
+    type: String,
+    required: [true, "Sub-category is required"],
+    enum: ["Top-Wear", "Bottom-Wear", "Winter-Wear"],
+  },
+  sizes: [
+    {
+      type: String,
+      enum: ["S", "M", "L", "XL"],
+    },
+  ],
+  bestSeller: {
+    type: Boolean,
+    default: false,
+  },
+  image: [
+    {
+      type: String,
+      required: [true, "Product image is required"],
+    },
+  ],
+  date: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
-const productModel =
-  mongoose.models.product || mongoose.model("product", productSchema);
-
-export default productModel;
+export default mongoose.model("Product", productSchema);
