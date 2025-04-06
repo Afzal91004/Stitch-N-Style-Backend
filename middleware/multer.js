@@ -10,12 +10,13 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
+// Use memory storage instead of disk storage
 const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter: fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB
-    files: 5, // Maximum 5 files
+    files: 5,
   },
 });
 
