@@ -14,10 +14,9 @@ import userRouter from "./routes/userRoute.js";
 import productRouter from "./routes/productRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
-import designerRouter from "./routes/designerRoute.js";
 import designRouter from "./routes/designRoute.js";
 import customOrderRouter from "./routes/customOrderRoute.js";
-import designersRouter from "./routes/designer.js";
+import designerRoutes from "./routes/designerRoutes.js";
 
 // config
 const app = express();
@@ -55,6 +54,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.options("*", cors());
+
 // Database and Cloudinary connection
 connectDb();
 
@@ -63,19 +63,9 @@ app.use("/api/user", userRouter);
 app.use("/api/product", productRouter);
 app.use("/api/cart", cartRouter);
 app.use("/api/order", orderRouter);
-// app.use("/api/designer", designerRouter);
 app.use("/api/design", designRouter);
-app.use("/api/custom-order", customOrderRouter);
-app.use("/api/designer", designersRouter);
-
-// Health check route
-app.get("/", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "API Working",
-    version: "1.0.0",
-  });
-});
+app.use("/api/designer", designerRoutes);
+app.use("/api/custom-order", customOrderRouter); // Keep this route last to avoid conflicts
 
 // Health check route
 app.get("/", (req, res) => {
