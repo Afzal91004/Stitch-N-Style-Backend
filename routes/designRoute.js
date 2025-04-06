@@ -62,7 +62,46 @@ router.post("/upload", (req, res) => {
   });
 });
 
-router.post("/add", upload.array("images", 4), addDesign);
+// Modified /add endpoint to handle multiple images properly
+router.post("/add", upload.array("images", 4), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No images uploaded",
+      });
+    }
+
+    // Upload all images to Cloudinary
+    const uploadPromises = req.files.map((file) =>
+      uploadToCloudinary(file.buffer)
+    );
+    const uploadResults = await Promise.all(uploadPromises);
+
+    // Check if all uploads were successful
+    const imageUrls = uploadResults.map((result) => {
+      if (!result || !result.secure_url) {
+        throw new Error("Failed to upload image to Cloudinary");
+      }
+      return {
+        url: result.secure_url,
+        public_id: result.public_id,
+      };
+    });
+
+    // Pass the processed images to addDesign controller
+    req.processedImages = imageUrls;
+    return addDesign(req, res);
+  } catch (error) {
+    console.error("Upload error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error processing images",
+      error: error.message,
+    });
+  }
+});
+
 router.get("/list", listDesigns);
 
 export default router;

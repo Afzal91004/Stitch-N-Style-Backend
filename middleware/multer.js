@@ -1,5 +1,6 @@
 import multer from "multer";
 
+// Use memory storage instead of disk storage
 const storage = multer.memoryStorage();
 
 const upload = multer({
@@ -10,10 +11,9 @@ const upload = multer({
   fileFilter: (req, file, cb) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
     if (!allowedTypes.includes(file.mimetype)) {
-      cb(new Error("Invalid file type"), false);
-    } else {
-      cb(null, true);
+      return cb(new Error("Only JPEG, JPG and PNG files are allowed"), false);
     }
+    cb(null, true);
   },
 });
 

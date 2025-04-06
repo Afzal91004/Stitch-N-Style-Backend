@@ -1,43 +1,38 @@
 import designModel from "../models/designModel.js";
 import { v2 as cloudinary } from "cloudinary";
 
-const addDesign = async (req, res) => {
+export const addDesign = async (req, res) => {
   try {
-    const { name, category, designerId, isTrendingDesign } = req.body;
-    const images = req.files?.images || [];
+    const { title, description, category, price } = req.body;
+    const images = req.processedImages; // Access the processed images
 
-    const imageUrls = await Promise.all(
-      images.map(async (image) => {
-        const uploadResult = await cloudinary.uploader
-          .upload(image.path, {
-            resource_type: "image",
-            folder: "designs",
-          })
-          .catch((err) => {
-            console.error("Cloudinary upload error:", err);
-            throw new Error("Failed to upload image to Cloudinary");
-          });
+    if (!title || !description || !category || !price || !images) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+      });
+    }
 
-        return uploadResult.secure_url;
-      })
-    );
-
-    const design = new designModel({
-      name,
+    // Create your design object with the processed images
+    const design = await Design.create({
+      title,
+      description,
       category,
-      image: imageUrls,
-      designer: designerId,
-      isTrendingDesign: isTrendingDesign === "true",
+      price,
+      images: images, // Array of {url, public_id}
     });
 
-    console.log("Saving design:", design);
-    const savedDesign = await design.save();
-    if (!savedDesign) {
-      console.error("Error saving design to DB:", design);
-    }
-    res.json({ success: true, message: "Design added successfully", design });
+    return res.status(201).json({
+      success: true,
+      design,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Add design error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error adding design",
+      error: error.message,
+    });
   }
 };
 
@@ -61,4 +56,4 @@ const listTrendingDesigns = async (req, res) => {
   }
 };
 
-export { addDesign, listDesigns, listTrendingDesigns };
+export { listDesigns, listTrendingDesigns };
