@@ -1,92 +1,121 @@
 import { v2 as cloudinary } from "cloudinary";
 import productModel from "../models/productModel.js";
 
-// Helper function for image uploads
-const uploadImages = async (files) => {
-  try {
-    const imageKeys = ["image1", "image2", "image3", "image4"];
-    const uploadPromises = [];
-
-    // Process each image key
-    for (const key of imageKeys) {
-      if (files[key] && files[key][0]) {
-        const file = files[key][0];
-        // Upload buffer directly to Cloudinary
-        const uploadPromise = cloudinary.uploader
-          .upload_stream({
-            resource_type: "auto",
-            folder: "products",
-          })
-          .end(file.buffer);
-
-        uploadPromises.push(uploadPromise);
+const uploadToCloudinary = async (buffer) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: "products",
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
       }
-    }
-
-    const results = await Promise.all(uploadPromises);
-    return results.map((result) => result.secure_url);
-  } catch (error) {
-    console.error("Image upload error:", error);
-    throw new Error("Failed to upload images");
-  }
-};
-
-// Validate product data
-const validateProductData = (data) => {
-  const errors = [];
-
-  if (!data.name || data.name.length < 3) {
-    errors.push("Name must be at least 3 characters long");
-  }
-
-  if (!data.description || data.description.length < 10) {
-    errors.push("Description must be at least 10 characters long");
-  }
-
-  const price = parseFloat(data.price);
-  if (isNaN(price) || price <= 0) {
-    errors.push("Price must be a positive number");
-  }
-
-  if (!data.category) {
-    errors.push("Category is required");
-  }
-
-  if (errors.length > 0) {
-    throw new Error(errors.join(", "));
-  }
-
-  return {
-    ...data,
-    price,
-    bestSeller: data.bestSeller === "true",
-    sizes: typeof data.sizes === "string" ? JSON.parse(data.sizes) : data.sizes,
-  };
+    );
+    uploadStream.end(buffer);
+  });
 };
 
 const addProduct = async (req, res) => {
   try {
-    const validatedData = validateProductData(req.body);
+    // Validate basic fields
+    const {
+      name,
+      description,
+      price,
+      category,
+      subCategory,
+      sizes,
+      bestSeller,
+    } = req.body;
 
-    // Check if files exist
-    if (!req.files || Object.keys(req.files).length === 0) {
-      throw new Error("At least one image is required");
+    // Enhanced validation with detailed feedback
+    const missingFields = [];
+    if (!name) missingFields.push('name');
+    if (!description) missingFields.push('description');
+    if (!price) missingFields.push('price');
+    if (!category) missingFields.push('category');
+    if (!sizes) missingFields.push('sizes');
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+        missingFields,
+        received: { name, description, price, category, sizes },
+      });
     }
 
-    // Upload images
-    const imageUrls = await uploadImages(req.files);
-
-    if (imageUrls.length === 0) {
-      throw new Error("Failed to upload images");
+    // Validate and parse sizes
+    let parsedSizes;
+    try {
+      parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+      if (!Array.isArray(parsedSizes) || parsedSizes.length === 0) {
+        throw new Error('Invalid sizes format');
+      }
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sizes format. Expected JSON array.",
+        received: sizes
+      });
     }
 
-    const product = new productModel({
-      ...validatedData,
-      image: imageUrls,
-      date: Date.now(),
+    // Handle image uploads
+    const imageUploads = [];
+    const imageFields = ["image1", "image2", "image3", "image4"];
+
+    for (const field of imageFields) {
+      if (req.files?.[field]?.[0]) {
+        const file = req.files[field][0];
+        try {
+          const result = await uploadToCloudinary(file.buffer);
+          if (!result?.secure_url || !result?.public_id) {
+            throw new Error(`Failed to upload ${field}`);
+          }
+          imageUploads.push({
+            url: result.secure_url,
+            public_id: result.public_id,
+          });
+        } catch (error) {
+          console.error(`Error uploading ${field}:`, error);
+          return res.status(400).json({
+            success: false,
+            message: `Error uploading ${field}`,
+            error: error.message
+          });
+        }
+      }
+    }
+
+    if (imageUploads.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one image is required"
+      });
+    }
+
+    // Parse price to ensure it's a valid number
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid price value",
+        received: price
+      });
+    }
+
+    // Create product with validated data
+    const product = await productModel.create({
+      name: name.trim(),
+      description: description.trim(),
+      price: parsedPrice,
+      category,
+      subCategory: subCategory || category,
+      sizes: parsedSizes,
+      bestSeller: bestSeller === "true" || bestSeller === true,
+      images: imageUploads,
     });
-
-    await product.save();
 
     res.status(201).json({
       success: true,
@@ -98,7 +127,7 @@ const addProduct = async (req, res) => {
     res.status(400).json({
       success: false,
       message: error.message || "Failed to add product",
-      errors: error.message.split(", "),
+      error: error.stack,
     });
   }
 };
