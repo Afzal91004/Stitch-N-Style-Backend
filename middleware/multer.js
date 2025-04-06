@@ -1,20 +1,22 @@
 import multer from "multer";
 
+// Use memory storage instead of disk storage
 const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  // Only accept images
-  if (!file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files are allowed"), false);
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only images are allowed!"), false);
   }
-  cb(null, true);
 };
 
-const limits = {
-  fileSize: 5 * 1024 * 1024, // 5MB
-  files: 5,
-};
-
-const upload = multer({ storage, fileFilter, limits });
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
 export default upload;

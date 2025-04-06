@@ -14,7 +14,7 @@ router.get("/trending-designs", listTrendingDesigns);
 router.post("/add", upload.array("images", 4), addDesign);
 router.get("/list", listDesigns);
 
-// Modified upload route to handle memory buffer
+// Replace existing upload route with this one
 router.post("/upload", upload.single("design"), async (req, res) => {
   try {
     if (!req.file) {
