@@ -1,27 +1,57 @@
 import mongoose from "mongoose";
 
-const designSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  description: { type: String },
-  image: { type: Array, required: true },
-  price: {
-    type: Number,
-    required: [true, "Price is required"],
-    min: [0, "Price must be greater than 0"],
+const designSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Product name is required"],
+      trim: true,
+    },
+    description: {
+      type: String,
+      required: [true, "Product description is required"],
+      trim: true,
+    },
+    price: {
+      type: Number,
+      required: [true, "Product price is required"],
+      min: [0, "Price cannot be negative"],
+    },
+    category: {
+      type: String,
+      required: [true, "Product category is required"],
+      enum: ["Men", "Women", "Kids"],
+    },
+    subCategory: {
+      type: String,
+      required: [true, "Product sub-category is required"],
+      enum: ["Top-Wear", "Bottom-Wear", "Winter-Wear"],
+    },
+    sizes: [
+      {
+        type: String,
+        enum: ["S", "M", "L", "XL"],
+      },
+    ],
+    bestSeller: {
+      type: Boolean,
+      default: false,
+    },
+    images: [
+      {
+        url: String,
+        public_id: String,
+      },
+    ],
+    designer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
-  category: { type: String, required: true },
-  subCategory: { type: String },
-  sizes: { type: Array, required: true },
-  likes: { type: Number, default: 0 },
-  isTrendingDesign: { type: Boolean, default: false },
-  designer: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "designer",
-    required: true,
-  },
-});
+  {
+    timestamps: true,
+  }
+);
 
-const designModel =
-  mongoose.models.design || mongoose.model("design", designSchema);
-
-export default designModel;
+export default mongoose.model("Design", designSchema);
