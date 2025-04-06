@@ -14,9 +14,27 @@ const upload = multer({
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
   },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only image files are allowed"));
+    }
+  },
 });
 
 const productRouter = express.Router();
+
+// Add error handling middleware for multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({
+      success: false,
+      message: `Upload error: ${err.message}`,
+    });
+  }
+  next(err);
+};
 
 productRouter.post(
   "/add",
@@ -27,6 +45,7 @@ productRouter.post(
     { name: "image3", maxCount: 1 },
     { name: "image4", maxCount: 1 },
   ]),
+  handleMulterError,
   addProduct
 );
 productRouter.post("/remove", adminAuth, removeProduct);
