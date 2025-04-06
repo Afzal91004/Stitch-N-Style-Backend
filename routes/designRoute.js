@@ -1,5 +1,5 @@
 import express from "express";
-import { uploadToCloudinary } from "../utils/cloudinary.js";
+import { uploadToCloudinary } from "../config/cloudinary.js";
 import upload from "../middleware/multer.js";
 import {
   addDesign,
@@ -14,27 +14,24 @@ router.get("/trending-designs", listTrendingDesigns);
 router.post("/add", upload.array("images", 4), addDesign);
 router.get("/list", listDesigns);
 
-// Replace existing upload route with this one
 router.post("/upload", upload.single("design"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    // Convert buffer to base64
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
-    const dataURI = `data:${req.file.mimetype};base64,${b64}`;
-
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(dataURI);
+    // Upload buffer directly to Cloudinary
+    const result = await uploadToCloudinary(req.file.buffer);
 
     res.status(200).json({
-      message: "File uploaded successfully",
+      success: true,
       url: result.secure_url,
+      public_id: result.public_id,
     });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({
+      success: false,
       message: "Error uploading file",
       error: error.message,
     });
