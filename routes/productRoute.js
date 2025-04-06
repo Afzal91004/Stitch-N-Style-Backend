@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   listProducts,
   addProduct,
@@ -6,8 +7,14 @@ import {
   singleProduct,
   editProduct,
 } from "../controllers/productController.js";
-import upload from "../middleware/multer.js";
 import adminAuth from "../middleware/adminAuth.js";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
 const productRouter = express.Router();
 

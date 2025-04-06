@@ -6,13 +6,26 @@ const uploadToCloudinary = async (buffer) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder: "products",
+        resource_type: "auto",
       },
       (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
+        if (error) {
+          console.error("Cloudinary upload error:", error);
+          reject(error);
+        } else {
+          console.log("Cloudinary upload success:", result);
+          resolve(result);
+        }
       }
     );
-    uploadStream.end(buffer);
+
+    // Handle potential buffer errors
+    try {
+      uploadStream.end(buffer);
+    } catch (error) {
+      console.error("Buffer upload error:", error);
+      reject(error);
+    }
   });
 };
 
@@ -31,11 +44,11 @@ const addProduct = async (req, res) => {
 
     // Enhanced validation with detailed feedback
     const missingFields = [];
-    if (!name) missingFields.push('name');
-    if (!description) missingFields.push('description');
-    if (!price) missingFields.push('price');
-    if (!category) missingFields.push('category');
-    if (!sizes) missingFields.push('sizes');
+    if (!name) missingFields.push("name");
+    if (!description) missingFields.push("description");
+    if (!price) missingFields.push("price");
+    if (!category) missingFields.push("category");
+    if (!sizes) missingFields.push("sizes");
 
     if (missingFields.length > 0) {
       return res.status(400).json({
@@ -49,30 +62,39 @@ const addProduct = async (req, res) => {
     // Validate and parse sizes
     let parsedSizes;
     try {
-      parsedSizes = typeof sizes === 'string' ? JSON.parse(sizes) : sizes;
+      parsedSizes = typeof sizes === "string" ? JSON.parse(sizes) : sizes;
       if (!Array.isArray(parsedSizes) || parsedSizes.length === 0) {
-        throw new Error('Invalid sizes format');
+        throw new Error("Invalid sizes format");
       }
     } catch (error) {
       return res.status(400).json({
         success: false,
         message: "Invalid sizes format. Expected JSON array.",
-        received: sizes
+        received: sizes,
       });
     }
 
-    // Handle image uploads
+    // Handle image uploads with better logging and validation
     const imageUploads = [];
     const imageFields = ["image1", "image2", "image3", "image4"];
+
+    console.log("Files received:", req.files); // Debug log
 
     for (const field of imageFields) {
       if (req.files?.[field]?.[0]) {
         const file = req.files[field][0];
+        console.log(`Processing ${field}:`, file); // Debug log
+
         try {
           const result = await uploadToCloudinary(file.buffer);
+          console.log(`Cloudinary result for ${field}:`, result); // Debug log
+
           if (!result?.secure_url || !result?.public_id) {
-            throw new Error(`Failed to upload ${field}`);
+            throw new Error(
+              `Failed to upload ${field}: Missing URL or public_id`
+            );
           }
+
           imageUploads.push({
             url: result.secure_url,
             public_id: result.public_id,
@@ -82,7 +104,8 @@ const addProduct = async (req, res) => {
           return res.status(400).json({
             success: false,
             message: `Error uploading ${field}`,
-            error: error.message
+            error: error.message,
+            field: field,
           });
         }
       }
@@ -91,7 +114,7 @@ const addProduct = async (req, res) => {
     if (imageUploads.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "At least one image is required"
+        message: "At least one image is required",
       });
     }
 
@@ -101,7 +124,7 @@ const addProduct = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid price value",
-        received: price
+        received: price,
       });
     }
 
@@ -114,8 +137,12 @@ const addProduct = async (req, res) => {
       subCategory: subCategory || category,
       sizes: parsedSizes,
       bestSeller: bestSeller === "true" || bestSeller === true,
-      images: imageUploads,
+      images: imageUploads, // Make sure this matches your model schema
+      date: new Date(),
     });
+
+    // Log the created product for debugging
+    console.log("Created product:", product);
 
     res.status(201).json({
       success: true,
