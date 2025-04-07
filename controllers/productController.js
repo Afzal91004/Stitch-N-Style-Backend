@@ -74,75 +74,48 @@ const addProduct = async (req, res) => {
       });
     }
 
-    // Handle image uploads with better logging and validation
-    const imageUploads = [];
+    // Handle image uploads
+    const imageUrls = [];
     const imageFields = ["image1", "image2", "image3", "image4"];
-
-    console.log("Files received:", req.files); // Debug log
 
     for (const field of imageFields) {
       if (req.files?.[field]?.[0]) {
         const file = req.files[field][0];
-        console.log(`Processing ${field}:`, file); // Debug log
-
         try {
           const result = await uploadToCloudinary(file.buffer);
-          console.log(`Cloudinary result for ${field}:`, result); // Debug log
-
-          if (!result?.secure_url || !result?.public_id) {
-            throw new Error(
-              `Failed to upload ${field}: Missing URL or public_id`
-            );
+          if (result?.secure_url) {
+            imageUrls.push(result.secure_url);
           }
-
-          imageUploads.push({
-            url: result.secure_url,
-            public_id: result.public_id,
-          });
         } catch (error) {
           console.error(`Error uploading ${field}:`, error);
           return res.status(400).json({
             success: false,
             message: `Error uploading ${field}`,
             error: error.message,
-            field: field,
           });
         }
       }
     }
 
-    if (imageUploads.length === 0) {
+    if (imageUrls.length === 0) {
       return res.status(400).json({
         success: false,
         message: "At least one image is required",
       });
     }
 
-    // Parse price to ensure it's a valid number
-    const parsedPrice = parseFloat(price);
-    if (isNaN(parsedPrice) || parsedPrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid price value",
-        received: price,
-      });
-    }
-
-    // Create product with validated data
+    // Create product with the correct data structure
     const product = await productModel.create({
       name: name.trim(),
       description: description.trim(),
-      price: parsedPrice,
+      price: parseFloat(price),
       category,
       subCategory: subCategory || category,
       sizes: parsedSizes,
       bestSeller: bestSeller === "true" || bestSeller === true,
-      images: imageUploads, // Make sure this matches your model schema
-      date: new Date(),
+      image: imageUrls, // Store as simple array of URLs
+      date: Date.now(),
     });
-
-    // Log the created product for debugging
-    console.log("Created product:", product);
 
     res.status(201).json({
       success: true,

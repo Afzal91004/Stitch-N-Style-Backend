@@ -36,18 +36,10 @@ const productSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
-  images: [
-    {
-      url: {
-        type: String,
-        required: true,
-      },
-      public_id: {
-        type: String,
-        required: true,
-      },
-    },
-  ],
+  image: {
+    type: [String],
+    required: true,
+  },
   date: {
     type: Date,
     default: Date.now,

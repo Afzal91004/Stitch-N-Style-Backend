@@ -1,4 +1,3 @@
-// orderController.js
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
 import Stripe from "stripe";
@@ -76,7 +75,7 @@ const verifyRazorpayPayment = async (req, res) => {
             paymentId: razorpay_payment_id,
             paymentOrderId: razorpay_order_id,
             paymentSignature: razorpay_signature,
-            status: "Processing", // Update initial order status
+            status: "orderPlaced", // Changed from "Processing" to "orderPlaced" to match frontend
             updatedAt: new Date(),
           },
           { session }
@@ -140,6 +139,7 @@ const placeOrderCod = async (req, res) => {
       amount,
       paymentMethod: "COD",
       payment: false,
+      status: "orderPlaced", // Add explicit status to match frontend
       date: Date.now(),
     };
 
@@ -177,7 +177,8 @@ const placeOrderStripe = async (req, res) => {
       address,
       amount,
       paymentMethod: "Stripe",
-      payment: true,
+      payment: false, // Change to false initially, will be updated after verification
+      status: "orderPlaced", // Add explicit status to match frontend
       date: Date.now(),
     };
 
@@ -213,8 +214,6 @@ const placeOrderStripe = async (req, res) => {
       mode: "payment",
     });
 
-    await userModel.findByIdAndUpdate(userId, { cartData: {} });
-
     res.json({ success: true, session_url: session.url });
   } catch (error) {
     console.error("Stripe order error:", error);
@@ -236,7 +235,10 @@ const verifyStripe = async (req, res) => {
       await orderModel.findByIdAndDelete(orderId);
       res.json({ success: false });
     }
-  } catch (error) {}
+  } catch (error) {
+    console.error("Stripe verification error:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // Razorpay Payment Method
@@ -258,8 +260,9 @@ const placeOrderRazorpay = async (req, res) => {
       items,
       address,
       amount,
-      paymentMethod: "Razorpay", // Fixed from "Stripe" to "Razorpay"
-      payment: false, // Should start as false until payment is confirmed
+      paymentMethod: "Razorpay",
+      payment: false,
+      status: "orderPlaced", // Add explicit status to match frontend
       date: Date.now(),
     };
 

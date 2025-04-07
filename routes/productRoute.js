@@ -47,7 +47,7 @@ productRouter.post(
   handleMulterError,
   addProduct
 );
-productRouter.post("/remove", adminAuth, removeProduct);
+productRouter.post("/remove", removeProduct);
 productRouter.post("/single", adminAuth, singleProduct);
 productRouter.get("/list", listProducts);
 productRouter.post("/edit", adminAuth, editProduct);
