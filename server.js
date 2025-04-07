@@ -41,6 +41,7 @@ app.use(
       // Add your production domains
       "https://stitch-n-style.vercel.app",
       "https://stitch-n-style-frontend.vercel.app",
+      "https://stitch-n-style-designers.vercel.app/",
       // If using Vercel preview deployments
       "https://*.vercel.app",
     ],
