@@ -38,6 +38,7 @@ app.use(
       "http://localhost:5176",
       "http://localhost:5177",
       "http://localhost:5178",
+      "https://www.stitchandstyle.studio", 
       // Add your production domains
       "https://stitch-n-style.vercel.app",
       "https://stitch-n-style-frontend.vercel.app",
